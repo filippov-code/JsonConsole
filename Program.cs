@@ -25,6 +25,10 @@ namespace JsonConsole
                     employees = JsonConvert.DeserializeObject<List<Employee>>(json) ?? new();
                 }
             }
+            catch (FileNotFoundException ex)
+            {
+                File.Create(Filename);
+            }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
@@ -34,6 +38,11 @@ namespace JsonConsole
             var parameters = new Dictionary<string, string>();
             for (int i = 1; i < args.Length; i++)
             {
+                if (!args[i].Contains("Id") && !args[i].Contains("FirstName") && !args[i].Contains("LastName") && !args[i].Contains("Salary"))
+                {
+                    UnknownParameter(args[i]);
+                    return;
+                }
                 string[] pair = args[i].Split(':');
                 if (pair.Length == 2 && !string.IsNullOrEmpty(pair[0]) && !string.IsNullOrEmpty(pair[1]))
                 {
@@ -137,6 +146,11 @@ namespace JsonConsole
                 EmployeeNotFound(id);
                 return;
             }
+            if (parameters.Count < 2)
+            {
+                NoParametersToChange();
+                return;
+            }
             if (parameters.ContainsKey("FirstName"))
             {
                 employee.FirstName = parameters["FirstName"];
@@ -154,6 +168,7 @@ namespace JsonConsole
                 else
                 {
                     IncorrectParameterFormat("Salary");
+                    return;
                 }
             }
 
@@ -225,7 +240,7 @@ namespace JsonConsole
         #region ConsoleMessages
         private static void Hello()
         {
-            Console.WriteLine("Hi, this program processes a text file containing a list of employees in JSON format. Call the -help command to get help");
+            Console.WriteLine("Hi, this program processes a text file containing a list of employees in JSON format. Call the -help command to get help.");
         }
         private static void Help()
         {
@@ -265,23 +280,45 @@ namespace JsonConsole
         }
         private static void UnknownCommand(string command)
         {
-            Console.WriteLine($"Unknown command: {command}. Call the -help command to get help");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Unknown command: {command}. Call the -help command to get help.");
+            Console.ResetColor();
+        }
+        private static void UnknownParameter(string parameter)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Unknown parameter: {parameter}. Call the -help command to get help.");
+            Console.ResetColor();
         }
         private static void IncorrectParameterFormat(string parameter)
         {
-            Console.WriteLine($"The \"{parameter}\" parameter has an incorrect format. Call the -help command to get help");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"The \"{parameter}\" parameter has an incorrect format. Call the -help command to get help.");
+            Console.ResetColor();
         }
         private static void MissingParameter(string parameterName)
         {
-            Console.WriteLine($"The required parameter was missed: {parameterName}");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"The required parameter was missed: {parameterName}.");
+            Console.ResetColor();
         }
         private static void IncorrectNumberOfParameters()
         {
-            Console.WriteLine("Invalid number of parameters");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid number of parameters.");
+            Console.ResetColor();
         }
         private static void EmployeeNotFound(int id)
         {
-            Console.WriteLine($"The employee with id:{id} was not found");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"The employee with id:{id} was not found.");
+            Console.ResetColor();
+        }
+        private static void NoParametersToChange()
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Specify the parameters to change");
+            Console.ResetColor();
         }
         #endregion
 

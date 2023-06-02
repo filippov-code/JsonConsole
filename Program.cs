@@ -1,4 +1,5 @@
-﻿using JsonConsole.Repository;
+﻿using JsonConsole.Interfaces;
+using JsonConsole.Storages;
 using Newtonsoft.Json;
 using System.Xml.Linq;
 
@@ -7,7 +8,7 @@ namespace JsonConsole
     internal class Program
     {
         private const string Filename = "employees.json";
-        private static List<Employee> employees;
+        private static IStorage<Employee> storage;
 
         static void Main(string[] args)
         {
@@ -19,19 +20,11 @@ namespace JsonConsole
 
             try 
             {
-                using (StreamReader reader = File.OpenText(Filename))
-                {
-                    string json = reader.ReadToEnd();
-                    employees = JsonConvert.DeserializeObject<List<Employee>>(json) ?? new();
-                }
-            }
-            catch (FileNotFoundException ex)
-            {
-                File.Create(Filename);
+                storage = new JsonStorage<Employee>(Filename);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                WriteException(ex.Message);
                 return;
             }
             
@@ -117,15 +110,24 @@ namespace JsonConsole
 
             Employee employee = new Employee()
             {
-                Id = employees.Count > 0 ? employees.Last().Id + 1 : 1,
                 FirstName = parameters["FirstName"],
                 LastName = parameters["LastName"],
                 SalaryPerHour = salary
             };
 
-            employees.Add(employee);
+            var addResult = storage.Add(employee);
+            if (!addResult.Success)
+            {
+                WriteException(addResult.Message);
+                return;
+            }
 
-            Save();
+            var saveResult = storage.Save();
+            if (!saveResult.Success)
+            {
+                WriteException(saveResult.Message);
+                return;
+            }
         }
 
         private static void Update(Dictionary<string, string> parameters)
@@ -140,12 +142,13 @@ namespace JsonConsole
                 IncorrectParameterFormat("Id");
                 return;
             }
-            Employee? employee = employees.FirstOrDefault(x => x.Id == id);
-            if (employee == null)
+            var getResult = storage.Get(id);
+            if (!getResult.Success)
             {
-                EmployeeNotFound(id);
+                WriteException(getResult.Message);
                 return;
             }
+            Employee employee = getResult.Result!.First();
             if (parameters.Count < 2)
             {
                 NoParametersToChange();
@@ -172,7 +175,19 @@ namespace JsonConsole
                 }
             }
 
-            Save();
+            var updateResult = storage.Update(employee);
+            if (!updateResult.Success)
+            {
+                WriteException(updateResult.Message);
+                return;
+            }
+
+            var saveResult = storage.Save();
+            if (!saveResult.Success)
+            {
+                WriteException(saveResult.Message);
+                return;
+            }
         }
 
         private static void Get(Dictionary<string, string> parameters)
@@ -192,13 +207,14 @@ namespace JsonConsole
                 IncorrectParameterFormat("Id");
                 return;
             }
-            Employee? employee = employees.FirstOrDefault(x => x.Id == id);
-            if (employee == null)
+            var getResult = storage.Get(id);
+            if (!getResult.Success)
             {
-                EmployeeNotFound(id);
+                WriteException(getResult.Message);
                 return;
             }
-            Console.WriteLine(employee);
+
+            Console.WriteLine(getResult.Result!.First());
         }
 
         private static void Delete(Dictionary<string, string> parameters)
@@ -218,30 +234,45 @@ namespace JsonConsole
                 IncorrectParameterFormat("Id");
                 return;
             }
-            Employee? employee = employees.FirstOrDefault(x => x.Id == id);
-            if (employee == null)
+            var getResult = storage.Get(id);
+            if (!getResult.Success)
             {
-                EmployeeNotFound(id);
+                WriteException(getResult.Message);
                 return;
             }
 
-            employees.Remove(employee);
+            var deleteResult = storage.Delete(id);
+            if (!deleteResult.Success)
+            {
+                WriteException(deleteResult.Message);
+                return;
+            }
 
-            Save();
+            var saveResult = storage.Save();
+            if (!saveResult.Success)
+            {
+                WriteException(saveResult.Message);
+                return;
+            }
         }
 
         private static void GetAll()
         {
-            foreach (var employee in employees)
+            var getAllResult = storage.GetAll();
+            if (!getAllResult.Success)
+            {
+                WriteException(getAllResult.Message);
+                return;
+            }
+
+            foreach (var employee in getAllResult.Result!)
                 Console.WriteLine(employee);
         }
         #endregion
 
         #region ConsoleMessages
         private static void Hello()
-        {
-            Console.WriteLine("Hi, this program processes a text file containing a list of employees in JSON format. Call the -help command to get help.");
-        }
+            => Console.WriteLine("Hi, this program processes a text file containing a list of employees in JSON format. Call the -help command to get help.");
         private static void Help()
         {
             Console.WriteLine(
@@ -308,36 +339,18 @@ namespace JsonConsole
             Console.WriteLine("Invalid number of parameters.");
             Console.ResetColor();
         }
-        private static void EmployeeNotFound(int id)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"The employee with id:{id} was not found.");
-            Console.ResetColor();
-        }
         private static void NoParametersToChange()
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"Specify the parameters to change");
             Console.ResetColor();
         }
-        #endregion
-
-        private static void Save()
+        private static void WriteException(string exceptionMessasge)
         {
-            Console.WriteLine(employees.Count);
-            try
-            {
-                using (StreamWriter file = File.CreateText(Filename))
-                {
-                    JsonSerializer serializer = new JsonSerializer();
-                    serializer.Serialize(file, employees);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-            
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(exceptionMessasge);
+            Console.ResetColor();
         }
+        #endregion
     }
 }

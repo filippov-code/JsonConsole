@@ -25,7 +25,7 @@ namespace JsonConsole.Storages
             }
             catch (FileNotFoundException ex)
             {
-                File.Create(Filepath);
+                using var stream = File.Create(Filepath);
                 entities = new();
             }
             catch
@@ -36,13 +36,19 @@ namespace JsonConsole.Storages
 
         public OperationResult<T> Add(T entity)
         {
-            entity.Id = GetFreeId();
-            entities.Add(entity);
+            if (entity == null)
+                return new OperationResult<T>(false, NullExeption(), default);
+
+            T clone = entity.Clone();
+            clone.Id = GetFreeId();
+            entities.Add(clone);
             return OperationResult<T>.EmptyOk;
         }
 
         public OperationResult<T> Update(T entity)
         {
+            if (entity == null)
+                return new OperationResult<T>(false, NullExeption(), default);
             T? entityToUpdate = entities.FirstOrDefault(x => x.Id == entity.Id);
             if (entityToUpdate == null)
                 return new OperationResult<T>(false, EntityNotFound(entity.Id), default);
@@ -101,6 +107,8 @@ namespace JsonConsole.Storages
         #region Messages
         private string EntityNotFound(int id)
             => $"Record with Id:{id} not found";
+        private string NullExeption()
+            => "Entity is null";
         #endregion
     }
 }

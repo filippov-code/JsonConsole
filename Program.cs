@@ -10,7 +10,7 @@ namespace JsonConsole
         private const string Filename = "employees.json";
         private static IStorage<Employee> storage;
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             if (args.Length == 0)
             {

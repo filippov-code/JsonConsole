@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace JsonConsole
 {
-    internal class Employee : IHaveId, ICloneable<Employee>
+    public class Employee : IHaveId, ICloneable<Employee>
     {
         public int Id { get; set; }
         public string FirstName { get; set; }
@@ -16,6 +16,12 @@ namespace JsonConsole
 
         public override string ToString() 
             => $"Id = {Id}, FirstName = {FirstName}, LastName = {LastName}, SalaryPerHour = {SalaryPerHour}";
+
+        public override bool Equals(object? employee)
+        { 
+            Employee? employee2 = employee as Employee;
+            return employee2 != null && Id == employee2.Id && FirstName == employee2.FirstName && LastName == employee2.LastName;
+        }
 
         public Employee Clone()
             => new Employee { Id = Id, FirstName = FirstName, LastName = LastName, SalaryPerHour = SalaryPerHour };

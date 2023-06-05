@@ -84,7 +84,6 @@ namespace JsonConsole.Storages
 
         public OperationResult<T> Save()
         {
-            Console.WriteLine(entities.Count);
             try
             {
                 using (StreamWriter file = File.CreateText(Filepath))
